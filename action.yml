@@ -1,0 +1,49 @@
+name: 'Sundial Context Engine sync'
+description: 'Sync playbooks from this repository to Sundial Context Engine'
+author: 'Sundial'
+
+branding:
+  icon: 'book-open'
+  color: 'orange'
+
+inputs:
+  api_url:
+    description: 'Sundial Context Engine API base URL (e.g. https://production.us-east-2.api.sundial.work/context-engine)'
+    required: true
+  token:
+    description: 'Service Account Token (sundial_sat_...). Store as a repository secret.'
+    required: true
+  include:
+    description: |
+      Newline-separated glob patterns of playbook files to sync, relative to the repository root.
+      Defaults to `playbooks/**/*.md`. Examples:
+        include: |
+          playbooks/**/*.md
+          guides/**/*.md
+          docs/runbooks/**/*.md
+    required: false
+    default: 'playbooks/**/*.md'
+  dry_run:
+    description: |
+      `true` to print what would be added/removed without calling the API. `false` to
+      always publish. Leave empty (default) for auto: dry-run on `pull_request` events,
+      publish on `push` events.
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Sync playbooks to Context Engine
+      shell: bash
+      env:
+        API_URL: ${{ inputs.api_url }}
+        TOKEN: ${{ inputs.token }}
+        INCLUDE: ${{ inputs.include }}
+        DRY_RUN: ${{ inputs.dry_run }}
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        EVENT_BEFORE: ${{ github.event.before }}
+        EVENT_AFTER: ${{ github.event.after }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: python3 ${{ github.action_path }}/sync.py
